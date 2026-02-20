@@ -1,15 +1,16 @@
 import os
-from openai import OpenAI
+import json
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def llm_evaluate(prompt):
 
     evaluation_prompt = f"""
-You are a prompt engineering evaluator.
+You are a strict prompt engineering evaluator.
 
 Score the following prompt from 0 to 10 for:
 
@@ -18,27 +19,30 @@ Score the following prompt from 0 to 10 for:
 3. Constraint Definition
 4. Output Format Definition
 
-Return STRICT JSON only like:
+Return ONLY valid JSON in this format:
 
 {{
   "clarity": 0,
   "specificity": 0,
   "constraints": 0,
   "format": 0,
-  "feedback": "text",
-  "improved_prompt": "rewritten version"
+  "feedback": "text explanation",
+  "improved_prompt": "rewritten optimized prompt"
 }}
 
 Prompt:
 {prompt}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-5.2",
-        messages=[
-            {"role": "system", "content": "You are a strict evaluator."},
-            {"role": "user", "content": evaluation_prompt}
-        ]
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=evaluation_prompt,
     )
 
-    return response.choices[0].message.content
+    text = response.text.strip()
+
+    # Clean markdown formatting if Gemini wraps JSON
+    if text.startswith("```"):
+        text = text.split("```")[1]
+
+    return text

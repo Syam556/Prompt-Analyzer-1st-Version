@@ -18,27 +18,46 @@ if st.button("Analyze Prompt"):
         # LLM evaluation
         llm_result = llm_evaluate(user_prompt)
 
+        # 🔹 Clean Gemini output
+        cleaned = llm_result.strip()
+
+        # Remove markdown formatting
+        if "```" in cleaned:
+            cleaned = cleaned.split("```")[1]
+
+        # Remove leading 'json'
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+
+        # Extract only JSON object
+        start = cleaned.find("{")
+        end = cleaned.rfind("}") + 1
+        cleaned = cleaned[start:end]
+
         try:
-            llm_data = json.loads(llm_result)
-        except:
+            llm_data = json.loads(cleaned)
+        except Exception:
             st.error("LLM response formatting error.")
-            st.write(llm_result)
+            st.write("Raw Response:")
+            st.code(llm_result)
             st.stop()
 
+        # 🔹 Calculate LLM score
         llm_total = (
-            llm_data["clarity"] +
-            llm_data["specificity"] +
-            llm_data["constraints"] +
-            llm_data["format"]
+            llm_data.get("clarity", 0) +
+            llm_data.get("specificity", 0) +
+            llm_data.get("constraints", 0) +
+            llm_data.get("format", 0)
         )
 
-        final_score = rule_score + llm_total
+        # 🔹 Scale rule score to 40 and LLM to 60
+        final_score = (rule_score * 0.4) + (llm_total * 0.6)
 
         st.subheader("📊 Final Score")
-        st.success(f"{final_score} / 100")
+        st.success(f"{round(final_score, 2)} / 100")
 
-        st.subheader("📝 Feedback")
-        st.write(llm_data["feedback"])
+        st.subheader("📝 AI Feedback")
+        st.write(llm_data.get("feedback", "No feedback provided."))
 
         if rule_feedback:
             st.subheader("⚠ Rule-Based Suggestions")
@@ -46,4 +65,4 @@ if st.button("Analyze Prompt"):
                 st.write("-", f)
 
         st.subheader("🚀 Improved Prompt")
-        st.write(llm_data["improved_prompt"])
+        st.write(llm_data.get("improved_prompt", "No improved version generated."))
