@@ -51,7 +51,13 @@ if st.button("Analyze Prompt"):
         )
 
         # 🔹 Scale rule score to 40 and LLM to 60
-        final_score = (rule_score * 0.4) + (llm_total * 0.6)
+        max_rule = 40
+        max_llm = 40
+
+        normalized_rule = (rule_score / max_rule) * 40
+        normalized_llm = (llm_total / max_llm) * 60
+
+        final_score = normalized_rule + normalized_llm
 
         st.subheader("📊 Final Score")
         st.success(f"{round(final_score, 2)} / 100")
